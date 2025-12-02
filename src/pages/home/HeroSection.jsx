@@ -4,7 +4,7 @@ import CircularText from "@/components/ui/CircularText";
 import ShowDetails from "@/components/ui/ShowDetails";
 import ViewGallery from "@/components/ui/ViewGallery";
 import { motion } from "framer-motion";
-
+import centerImg from "@/assets/images/letters2.png"; 
 export default function HeroSection() {
     return (<>
         <div className="min-h-screen bg-[#f0edde] flex items-center justify-center pb-10 lg:pb-0">
@@ -52,7 +52,7 @@ export default function HeroSection() {
                             text="Join Us On Our Special Day "
                             spinDuration={20}
                             onHover="speedUp"
-                            centerImage="/src/assets/images/letters2.png"
+                            centerImage={centerImg}
                             className="text-black/60"
                         />
                     </motion.div>

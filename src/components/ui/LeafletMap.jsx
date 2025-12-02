@@ -1,11 +1,12 @@
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
-
+import markerIconn from "@/assets/images/marker-icon.png";
+import markerShadow from "@/assets/images/marker-shadow.png";
 // Fix default marker icon in Vite
 const markerIcon = new L.Icon({
-    iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-    shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+    iconUrl: {markerIconn},
+    shadowUrl: {markerShadow},
     iconSize: [25, 41],
     iconAnchor: [12, 41],
 });
