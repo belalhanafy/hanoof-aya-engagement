@@ -50,6 +50,12 @@ export default function Gallery() {
             <p className="text-red-500 text-center">{error}</p>
           </div>
         )}
+        {/* No Images */}
+        {!loading && !error && images.length === 0 && (
+          <div className="flex items-center justify-center h-32">
+            <p className="text-black/60 text-lg">No images yet — add some to get started.</p>
+          </div>
+        )}
 
         {/* GRID */}
         {!loading && !error && (
