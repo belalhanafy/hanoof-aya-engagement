@@ -1,16 +1,13 @@
-// import WishesCarousel from "@/components/WishesCarousel";
 
-import CircularText from "@/components/ui/CircularText";
 import HeroSection from "./HeroSection";
 import ScrollDown from "@/components/ui/ScrollDown";
 import LeafletMap from "@/components/ui/LeafletMap";
 
-import { Calendar, MapPin, Clock, Heart } from "lucide-react";
+import { Calendar, MapPin, Clock, Heart, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import ShowDetails from "@/components/ui/ShowDetails";
 
 import { ImageUp } from 'lucide-react';
-// import { InfiniteMovingImages } from "@/components/ui/infinite-moving-cards";
 
 import weddingImg1 from "@/assets/images/img1.jpeg";
 import weddingImg2 from "@/assets/images/img2.jpeg";
@@ -30,15 +27,35 @@ import {
 import Autoplay from "embla-carousel-autoplay";
 import { AnimateSvg } from "@/components/ui/AnimateSvg";
 import Loader from "@/components/ui/Loader";
+import useWishes from "@/hooks/useWishes";
+import useImages from "@/hooks/useImages";
 
 export default function Home() {
+    const {
+        wishes,
+        loading: wishesLoading,
+        error: wishesError,
+        addWish
+    } = useWishes();
+
+    const { images, loading: imagesLoading, error: imagesError, uploadImage } = useImages();
+
+    const [name, setName] = useState("");
+    const [message, setMessage] = useState("");
+    const [submitting, setSubmitting] = useState(false);
+    const [submitError, setSubmitError] = useState(null);
+    const [submitSuccess, setSubmitSuccess] = useState(false);
+
     const navigate = useNavigate();
-    const [images, setImages] = useState([]);
+    const [localImages, setLocalImages] = useState([]); // Renamed to avoid conflict with hook's 'images'
     const carouselImages = [weddingImg1, weddingImg2, weddingImg3, weddingImg4];
     const [api, setApi] = useState(null);
     const [selectedIndex, setSelectedIndex] = useState(0);
     const plugin = Autoplay({ delay: 3000 });
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(() => {
+        const hasVisited = sessionStorage.getItem("visited");
+        return !hasVisited; // show loader only if not visited before
+    });
 
     useEffect(() => {
         if (!api) return;
@@ -49,6 +66,37 @@ export default function Home() {
         return () => api.off("select", onSelect);
     }, [api]);
 
+    useEffect(() => {
+        if (!loading) return;
+        sessionStorage.setItem("visited", "true");
+    }, [loading]);
+
+
+
+    const handleSubmitWish = async (e) => {
+        e?.preventDefault?.();
+        setSubmitError(null);
+        setSubmitSuccess(false);
+
+        if (!name.trim() || !message.trim()) {
+            setSubmitError("Please enter both name and message.");
+            return;
+        }
+
+        try {
+            setSubmitting(true);
+            await addWish({ name, message });
+            setName("");
+            setMessage("");
+            setSubmitSuccess(true);
+            // optional: hide success after a few seconds
+            setTimeout(() => setSubmitSuccess(false), 4000);
+        } catch (err) {
+            setSubmitError(err.message || "Failed to send wish.");
+        } finally {
+            setSubmitting(false);
+        }
+    };
 
     const handleFilesChange = (files) => {
         const newImages = Array.from(files)
@@ -60,39 +108,49 @@ export default function Home() {
                     reader.readAsDataURL(file);
                 });
             });
-
         Promise.all(newImages).then(results => {
-            setImages(prev => [...prev, ...results]);
+            setLocalImages(prev => [...prev, ...results]); // Use localImages
         });
     };
-
     const handleFileInputChange = (e) => {
         handleFilesChange(e.target.files);
     };
-
     const handleDelete = (index) => {
-        setImages(prev => prev.filter((_, i) => i !== index));
+        setLocalImages(prev => prev.filter((_, i) => i !== index)); // Use localImages
     };
-
     const openFileDialog = () => {
         document.getElementById("fileInput").click();
     };
 
-    const handleAddToGallery = () => {
-        if (onAddToGallery) {
-            onAddToGallery(images); // send images to gallery
-            setImages([]); // clear uploaded images
+    const handleAddToGallery = async () => {
+        if (localImages.length === 0) return;
+        try {
+            setSubmitting(true); // Reuse submitting state for upload feedback
+            for (const img of localImages) {
+                await uploadImage(img.file, { folder: "wedding" });
+            }
+            setLocalImages([]); // Clear after upload
+            setSubmitSuccess(true); // Show success
+            setTimeout(() => setSubmitSuccess(false), 3000);
+            // Optional: Refetch images or navigate to gallery
+        } catch (err) {
+            setSubmitError(err.message || "Failed to add images to gallery.");
+            setTimeout(() => setSubmitError(""), 3000); // Hide error after 4 seconds
+        } finally {
+            setSubmitting(false);
         }
     };
+
+
     return (
         <>
             {loading && <Loader onFinish={() => setLoading(false)} />}
             {!loading &&
                 <>
                     <div className="relative">
-                        
+
                         <HeroSection />
-                        
+
 
                         <div className="absolute bottom-2 right-1/2 translate-x-1/2 z-50 hidden lg:block">
                             <ScrollDown onClick={() => {
@@ -197,6 +255,8 @@ export default function Home() {
                             </motion.div>
                         </div>
                     </div>
+
+
                     <div id="view-gallery" className="max-w-7xl mx-auto py-16 mb-10 px-6">
                         <h2 className="text-4xl sm:text-5xl font-semibold text-center text-black/80 mb-8 tracking-wide">
                             Gallery
@@ -222,12 +282,14 @@ export default function Home() {
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                             {/* LEFT: Upload Box */}
-                            <div className="w-full flex flex-col justify-between rounded-lg border-2 border-dashed border-gray-400 h-40 md:h-80">
+                            <div className="w-full flex flex-col justify-between rounded-lg border-2 border-dashed border-gray-400 p-2 h-80">
+                                {submitSuccess && <p className="text-center text-green-500">Images added to gallery successfully!</p>}
+                                {submitError && <p className="text-center text-red-500">Error: {submitError}</p>}
                                 <div
-                                    className="overflow-auto flex-1 cursor-pointer"
-                                    onClick={images.length === 0 ? openFileDialog : undefined}
+                                    className="overflow-auto flex-1 cursor-pointer pr-2"
+                                    onClick={localImages.length === 0 ? openFileDialog : undefined} // Use localImages
                                 >
-                                    {images.length === 0 ? (
+                                    {localImages.length === 0 ? (
                                         <div className="flex flex-col items-center justify-center h-full w-full">
                                             <ImageUp className="text-4xl text-gray-500 mb-4" />
                                             <p className="text-center text-gray-600 px-4">
@@ -236,7 +298,7 @@ export default function Home() {
                                         </div>
                                     ) : (
                                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-3 w-full">
-                                            {images.map((img, idx) => (
+                                            {localImages.map((img, idx) => ( // Use localImages
                                                 <div key={idx} className="relative border rounded-lg overflow-hidden">
                                                     <img
                                                         src={img.src}
@@ -256,20 +318,20 @@ export default function Home() {
                                     )}
                                 </div>
 
-                                {images.length > 0 && (
-                                    <div className="flex flex-col sm:flex-row gap-4 mt-4">
+                                {localImages.length > 0 && (
+                                    <div className="flex flex-row gap-4 mt-4">
                                         <button
                                             onClick={() => document.getElementById("fileInput").click()}
-                                            className="flex-1 bg-green-500 px-4 py-2 rounded text-white font-medium text-sm sm:text-base"
+                                            className="flex-1 bg-green-500 px-4 py-2 rounded text-white cursor-pointer font-medium text-sm sm:text-base"
                                         >
                                             Add More Images
                                         </button>
-
                                         <button
                                             onClick={handleAddToGallery}
-                                            className="flex-1 bg-blue-600 px-4 py-2 rounded text-white font-medium text-sm sm:text-base"
+                                            disabled={submitting}
+                                            className="flex-1 bg-blue-600 px-4 py-2 rounded cursor-pointer text-white font-medium text-sm sm:text-base disabled:opacity-50"
                                         >
-                                            Add to Gallery
+                                            {submitting ? "Uploading..." : "Add to Gallery"}
                                         </button>
                                     </div>
                                 )}
@@ -286,6 +348,9 @@ export default function Home() {
 
                             {/* RIGHT: Carousel */}
                             <div className="w-full">
+                                {/* NEW: Show loading/error for images */}
+                                {imagesLoading && <p className="text-center">Loading images...</p>}
+                                {imagesError && <p className="text-center text-red-500">Error: {imagesError}</p>}
                                 <Carousel
                                     className="w-full"
                                     opts={{ loop: true, align: "center" }}
@@ -293,20 +358,37 @@ export default function Home() {
                                     setApi={setApi}
                                 >
                                     <CarouselContent>
-                                        {carouselImages.map((img, index) => (
-                                            <CarouselItem key={index} className="basis-3/4 sm:basis-1/2">
+                                        {/* UPDATED: Map over fetched 'images' instead of static 'carouselImages' */}
+                                        {images.length > 0 ? images.map((img, index) => (
+                                            <CarouselItem key={img.id || index} className="basis-3/4 sm:basis-1/2">
                                                 <div className="p-2">
                                                     <div className="h-60 sm:h-72 rounded-xl overflow-hidden">
                                                         <img
-                                                            src={img}
-                                                            alt="carousel"
+                                                            src={img.url} // Use the 'url' from Firestore doc
+                                                            alt={img.fileName || `Image ${index}`}
                                                             className="w-full h-full object-cover"
                                                             loading="lazy"
                                                         />
                                                     </div>
                                                 </div>
                                             </CarouselItem>
-                                        ))}
+                                        )) : (
+                                            // Fallback to static images if no fetched images
+                                            carouselImages.map((img, index) => (
+                                                <CarouselItem key={index} className="basis-3/4 sm:basis-1/2">
+                                                    <div className="p-2">
+                                                        <div className="h-60 sm:h-72 rounded-xl overflow-hidden">
+                                                            <img
+                                                                src={img}
+                                                                alt="carousel"
+                                                                className="w-full h-full object-cover"
+                                                                loading="lazy"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </CarouselItem>
+                                            ))
+                                        )}
                                     </CarouselContent>
 
                                     <CarouselPrevious className="left-0 top-full mt-5" />
@@ -314,7 +396,8 @@ export default function Home() {
                                 </Carousel>
 
                                 <div className="flex justify-end gap-3 mt-3 w-full">
-                                    {carouselImages.map((_, index) => (
+                                    {/* UPDATED: Use images.length or fallback */}
+                                    {(images.length > 0 ? images : carouselImages).map((_, index) => (
                                         <button
                                             key={index}
                                             onClick={() => api?.scrollTo(index)}
@@ -328,14 +411,13 @@ export default function Home() {
                             </div>
 
                             <div className="col-span-1 md:col-span-2 flex justify-center mt-3">
-                                <ShowDetails text="View Gallery" />
+                                <ShowDetails text="View Gallery" onClick={() => navigate("/gallery")} />
                             </div>
 
                         </div>
+
+
                     </div>
-
-
-
                     <div className="w-full bg-[#f5f1e9] py-10">
                         <div className="max-w-7xl mx-auto px-6">
 
@@ -370,62 +452,62 @@ export default function Home() {
                                     transition={{ duration: 0.8 }}
                                     viewport={{ once: true }}
                                     className="
-    w-full 
-    bg-[#faf7ef]/90 
-    backdrop-blur-xl 
-    rounded-3xl 
-    shadow-xl 
-    border border-black/10 
-    p-10 
-    flex flex-col
-    order-2 lg:order-1
-  "
+                                        w-full 
+                                        bg-[#faf7ef]/90 
+                                        backdrop-blur-xl 
+                                        rounded-3xl 
+                                        shadow-xl 
+                                        border border-black/10 
+                                        p-10 
+                                        flex flex-col
+                                        order-2 lg:order-1
+                                        "
                                 >
                                     <h3 className="text-2xl font-semibold text-black/80 mb-6">
                                         Wishes Preview
                                     </h3>
 
                                     {/* SCROLLABLE GRID (6 max visible) */}
-                                    <div className="overflow-y-auto max-h-[340px] pr-3 pb-2">
-                                        <div className="grid grid-cols-1 gap-4">
-                                            {[
-                                                "Wishing you a lifetime of love and happiness!",
-                                                "So happy for you both — congratulations!",
-                                                "May your marriage be filled with endless joy.",
-                                                "Can’t wait to celebrate with you!",
-                                                "Your love story is truly beautiful — congratulations!",
-                                                "Wishing you endless joy in your new journey together!",
-                                                "Extra wish — to show scroll!",
-                                                "Another extra wish!",
-                                            ].map((wish, i) => (
-                                                <div
-                                                    key={i}
-                                                    className="
-            bg-linear-to-br 
-            from-[#faf7ef] 
-            to-[#f3ece1] 
-            border border-black/10 
-            rounded-2xl 
-            shadow-md 
-            p-5 
-            hover:shadow-xl 
-            transition-all 
-            duration-300
-          "
-                                                >
-                                                    <p className="text-black/70 text-xl lg:text-2xl leading-relaxed">
-                                                        {wish}
-                                                    </p>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    {/* BUTTON AT BOTTOM */}
-                                    <div className="mt-8 flex justify-end">
-                                        <ShowDetails text="View All Wishes" onClick={() => navigate("/wishes")} />
+                                    <div className="overflow-y-auto max-h-[340px] pr-2 pb-2">
+                                        {wishesLoading ? (
+                                            <div className="flex items-center justify-center h-32">
+                                                <Loader2 className="animate-spin mr-2" />
+                                                <p className="text-black/60">Loading wishes...</p>
+                                                {/* Optional: Add a spinner here, e.g., <Loader /> if you have one */}
+                                            </div>
+                                        ) : wishesError ? (
+                                            <div className="flex items-center justify-center h-32">
+                                                <p className="text-red-500 text-center">{wishesError}</p>
+                                            </div>
+                                        ) : (
+                                            <div className="grid grid-cols-1 gap-4">
+                                                {wishes?.map((wish) => (
+                                                    <div
+                                                        key={wish?.id}
+                                                        className="
+        bg-linear-to-br 
+        from-[#faf7ef] 
+        to-[#f3ece1] 
+        border border-black/10 
+        rounded-2xl 
+        shadow-md 
+        p-5 
+        hover:shadow-xl 
+        transition-all 
+        duration-300
+      "
+                                                    >
+                                                        <p className="font-semibold">{wish?.name}</p>
+                                                        <p className="text-black/70 text-xl lg:text-2xl leading-relaxed">
+                                                            {wish?.message}
+                                                        </p>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
                                 </motion.div>
+
 
                                 {/* ───────────────────── RIGHT: GUEST MESSAGE FORM ───────────────────── */}
                                 <motion.div
@@ -449,51 +531,58 @@ export default function Home() {
                                         Leave a Wish
                                     </h3>
 
-                                    <form className="space-y-6 flex-1">
+                                    <form className="space-y-6 flex-1" onSubmit={handleSubmitWish}>
                                         <div>
-                                            <label className="block text-black/80 mb-1 font-medium">
-                                                Your Name
-                                            </label>
+                                            <label className="block text-black/80 mb-1 font-medium">Your Name</label>
                                             <input
                                                 type="text"
                                                 className="w-full px-4 py-3 rounded-xl border border-black/20 bg-white/70"
                                                 placeholder="Enter your name"
+                                                value={name}
+                                                onChange={(e) => setName(e.target.value)}
                                             />
                                         </div>
 
                                         <div>
-                                            <label className="block text-black/80 mb-1 font-medium">
-                                                Your Message
-                                            </label>
+                                            <label className="block text-black/80 mb-1 font-medium">Your Message</label>
                                             <textarea
                                                 rows={4}
                                                 className="w-full px-4 py-3 rounded-xl border border-black/20 bg-white/70"
                                                 placeholder="Write your wishes..."
-                                            ></textarea>
+                                                value={message}
+                                                onChange={(e) => setMessage(e.target.value)}
+                                            />
+                                        </div>
+
+                                        <div className="flex items-center justify-end gap-4">
+                                            {submitError && <div className="text-sm text-red-600">{submitError}</div>}
+                                            {submitSuccess && <div className="text-sm text-green-600">Sent — thank you!</div>}
+
+                                            <button
+                                                type="submit"
+                                                className={`px-6 py-2 rounded-xl font-semibold ${submitting ? "bg-gray-400 cursor-not-allowed" : "bg-rose-500 hover:bg-rose-600 text-white"}`}
+                                                disabled={submitting}
+                                            >
+                                                {submitting ? "Sending..." : "Send Message"}
+                                            </button>
                                         </div>
                                     </form>
-
-                                    {/* BUTTON AT BOTTOM */}
-                                    <div className="mt-8 flex justify-end">
-                                        <ShowDetails text="Send Message" />
-                                    </div>
                                 </motion.div>
 
                             </div>
                         </div>
                     </div>
-
                     <div
                         className="
-        w-full 
-        py-6 
-        bg-linear-to-r 
-        from-[#f5ede2] 
-        via-[#f7e7dd] 
-        to-[#f3dfd8]
-        border-t 
-        border-black/10
-        text-center
+                            w-full 
+                            py-6 
+                            bg-linear-to-r 
+                            from-[#f5ede2] 
+                            via-[#f7e7dd] 
+                            to-[#f3dfd8]
+                            border-t 
+                            border-black/10
+                            text-center
     "
                     >
                         <span className="text-black/60 tracking-wide text-base sm:text-lg">
