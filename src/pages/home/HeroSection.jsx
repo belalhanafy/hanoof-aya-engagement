@@ -28,7 +28,7 @@ export default function HeroSection() {
                         Capturing the moments that will captivate your heart
                     </p>
 
-                    <div className="pt-5 text-center">
+                    <div className="pt-5 text-center lg:text-left">
                         <ViewGallery
                             className="font-semibold tracking-wide"
                             onClick={() => {
