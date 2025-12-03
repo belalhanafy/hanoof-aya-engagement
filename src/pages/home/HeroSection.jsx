@@ -17,7 +17,7 @@ export default function HeroSection() {
                     transition={{ duration: 0.9, ease: "easeOut" }}
                     className="space-y-4 mb-10 lg:mb-0 text-center lg:text-left"
                 >
-                    <h1 className="text-4xl text-black leading-tight">
+                    <h1 className="text-4xl text-black leading-tight mt-10 sm:mt-0">
                         With joyful hearts<br />
                         we invite you to share<br />
                         in the celebration of<br />

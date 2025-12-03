@@ -394,20 +394,6 @@ export default function Home() {
                                     <CarouselPrevious className="left-0 top-full mt-5" />
                                     <CarouselNext className="left-10 top-full mt-5" />
                                 </Carousel>
-
-                                <div className="flex justify-end gap-3 mt-3 w-full">
-                                    {/* UPDATED: Use images.length or fallback */}
-                                    {(images.length > 0 ? images : carouselImages).map((_, index) => (
-                                        <button
-                                            key={index}
-                                            onClick={() => api?.scrollTo(index)}
-                                            className={`h-3 w-3 rounded-full transition-all ${selectedIndex === index
-                                                ? "bg-[#e7d4b5] scale-125"
-                                                : "bg-gray-300"
-                                                }`}
-                                        />
-                                    ))}
-                                </div>
                             </div>
 
                             <div className="col-span-1 md:col-span-2 flex justify-center mt-3">
@@ -481,28 +467,34 @@ export default function Home() {
                                             </div>
                                         ) : (
                                             <div className="grid grid-cols-1 gap-4">
-                                                {wishes?.map((wish) => (
-                                                    <div
-                                                        key={wish?.id}
-                                                        className="
-        bg-linear-to-br 
-        from-[#faf7ef] 
-        to-[#f3ece1] 
-        border border-black/10 
-        rounded-2xl 
-        shadow-md 
-        p-5 
-        hover:shadow-xl 
-        transition-all 
-        duration-300
-      "
-                                                    >
-                                                        <p className="font-semibold">{wish?.name}</p>
-                                                        <p className="text-black/70 text-xl lg:text-2xl leading-relaxed">
-                                                            {wish?.message}
-                                                        </p>
+                                                {wishes?.length === 0 ? (
+                                                    <div className="flex items-center justify-center h-32">
+                                                        <p className="text-black/60 text-lg">No wishes yet — be the first to send one!</p>
                                                     </div>
-                                                ))}
+                                                ) : (
+                                                    wishes.map((wish) => (
+                                                        <div
+                                                            key={wish?.id}
+                                                            className="
+                bg-linear-to-br 
+                from-[#faf7ef] 
+                to-[#f3ece1] 
+                border border-black/10 
+                rounded-2xl 
+                shadow-md 
+                p-5 
+                hover:shadow-xl 
+                transition-all 
+                duration-300
+        "
+                                                        >
+                                                            <p className="font-semibold">{wish?.name}</p>
+                                                            <p className="text-black/70 text-xl lg:text-2xl leading-relaxed">
+                                                                {wish?.message}
+                                                            </p>
+                                                        </div>
+                                                    ))
+                                                )}
                                             </div>
                                         )}
                                     </div>
@@ -572,6 +564,8 @@ export default function Home() {
                             </div>
                         </div>
                     </div>
+
+
                     <div
                         className="
                             w-full 
