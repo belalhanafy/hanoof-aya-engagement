@@ -205,7 +205,7 @@ export default function Home() {
                                                 <Calendar className="w-10 h-10 text-black/60" />
                                                 <div>
                                                     <p className="text-lg font-medium text-black/80">Date</p>
-                                                    <p className="text-xl font-semibold text-black">9 / 12 / 2024</p>
+                                                    <p className="text-xl font-semibold text-black">9 / 12 / 2025</p>
                                                 </div>
                                             </div>
 
