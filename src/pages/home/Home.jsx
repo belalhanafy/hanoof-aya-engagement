@@ -214,7 +214,7 @@ export default function Home() {
                                                 <Clock className="w-10 h-10 text-black/60" />
                                                 <div>
                                                     <p className="text-lg font-medium text-black/80">Time</p>
-                                                    <p className="text-xl font-semibold text-black">7:30 PM</p>
+                                                    <p className="text-xl font-semibold text-black">7 PM</p>
                                                 </div>
                                             </div>
 
